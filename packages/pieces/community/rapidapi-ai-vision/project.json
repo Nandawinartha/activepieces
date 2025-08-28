@@ -1,0 +1,21 @@
+{
+  "name": "piece-rapidapi-ai-vision",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/pieces/community/rapidapi-ai-vision/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/esbuild:esbuild",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/packages/pieces/community/rapidapi-ai-vision",
+        "main": "packages/pieces/community/rapidapi-ai-vision/src/index.ts",
+        "tsConfig": "packages/pieces/community/rapidapi-ai-vision/tsconfig.lib.json",
+        "assets": ["packages/pieces/community/rapidapi-ai-vision/*.md"],
+        "format": ["cjs"],
+        "bundle": true
+      }
+    }
+  },
+  "tags": ["pieces:community"]
+}

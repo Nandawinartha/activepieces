@@ -1,0 +1,21 @@
+{
+  "name": "piece-rapidapi-translate",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/pieces/community/rapidapi-translate/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/esbuild:esbuild",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/packages/pieces/community/rapidapi-translate",
+        "main": "packages/pieces/community/rapidapi-translate/src/index.ts",
+        "tsConfig": "packages/pieces/community/rapidapi-translate/tsconfig.lib.json",
+        "assets": ["packages/pieces/community/rapidapi-translate/*.md"],
+        "format": ["cjs"],
+        "bundle": true
+      }
+    }
+  },
+  "tags": ["pieces:community"]
+}
