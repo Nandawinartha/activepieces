@@ -1,0 +1,21 @@
+{
+  "name": "piece-rapidapi-news",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/pieces/community/rapidapi-news/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/esbuild:esbuild",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/packages/pieces/community/rapidapi-news",
+        "main": "packages/pieces/community/rapidapi-news/src/index.ts",
+        "tsConfig": "packages/pieces/community/rapidapi-news/tsconfig.lib.json",
+        "assets": ["packages/pieces/community/rapidapi-news/*.md"],
+        "format": ["cjs"],
+        "bundle": true
+      }
+    }
+  },
+  "tags": ["pieces:community"]
+}

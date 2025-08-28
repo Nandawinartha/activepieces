@@ -1,0 +1,21 @@
+{
+  "name": "piece-rapidapi-weather",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/pieces/community/rapidapi-weather/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/esbuild:esbuild",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/packages/pieces/community/rapidapi-weather",
+        "main": "packages/pieces/community/rapidapi-weather/src/index.ts",
+        "tsConfig": "packages/pieces/community/rapidapi-weather/tsconfig.lib.json",
+        "assets": ["packages/pieces/community/rapidapi-weather/*.md"],
+        "format": ["cjs"],
+        "bundle": true
+      }
+    }
+  },
+  "tags": ["pieces:community"]
+}
