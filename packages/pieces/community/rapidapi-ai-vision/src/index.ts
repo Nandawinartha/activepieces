@@ -46,12 +46,10 @@ export const rapidApiAiVision = createPiece({
     createCustomApiCallAction({
       auth: rapidApiAiVisionAuth,
       baseUrl: () => 'https://microsoft-computer-vision3.p.rapidapi.com',
-      authMapping: async (auth) => {
-        return {
-          'X-RapidAPI-Key': auth,
-          'X-RapidAPI-Host': 'microsoft-computer-vision3.p.rapidapi.com',
-        };
-      },
+      authMapping: async (auth) => ({
+        'X-RapidAPI-Key': auth as string,
+        'X-RapidAPI-Host': 'microsoft-computer-vision3.p.rapidapi.com',
+      }),
     }),
   ],
   authors: ['activepieces-community'],

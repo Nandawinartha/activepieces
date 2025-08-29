@@ -8,6 +8,132 @@ import {
 } from '@activepieces/pieces-common';
 import { rapidApiAiVisionAuth } from '../..';
 
+// Helper functions outside the action
+function normalizeAnalysisResult(data: any, provider: string, features: string[]): any {
+  const result: any = {};
+  
+  if (features.includes('objects')) {
+    result.objects = extractObjects(data, provider);
+  }
+  
+  if (features.includes('colors')) {
+    result.colors = extractColors(data, provider);
+  }
+  
+  if (features.includes('text')) {
+    result.text = extractTextData(data, provider);
+  }
+  
+  if (features.includes('faces')) {
+    result.faces = extractFaces(data, provider);
+  }
+  
+  result.general_info = extractGeneralInfo(data, provider);
+  
+  return result;
+}
+
+function extractObjects(data: any, provider: string): any[] {
+  switch (provider) {
+    case 'microsoft':
+      return data.objects?.map((obj: any) => ({
+        name: obj.object,
+        confidence: obj.confidence,
+        bounding_box: obj.rectangle
+      })) || [];
+    case 'google':
+      return data.localizedObjectAnnotations?.map((obj: any) => ({
+        name: obj.name,
+        confidence: obj.score,
+        bounding_box: obj.boundingPoly
+      })) || [];
+    default:
+      return [];
+  }
+}
+
+function extractColors(data: any, provider: string): any {
+  switch (provider) {
+    case 'microsoft':
+      return {
+        dominant_colors: data.color?.dominantColors || [],
+        accent_color: data.color?.accentColor,
+        is_bw_image: data.color?.isBwImg
+      };
+    case 'google':
+      return {
+        dominant_colors: data.imagePropertiesAnnotation?.dominantColors?.colors || []
+      };
+    default:
+      return {};
+  }
+}
+
+function extractTextData(data: any, provider: string): any {
+  switch (provider) {
+    case 'microsoft':
+      return {
+        text_content: data.readResult?.content || '',
+        lines: data.readResult?.lines || []
+      };
+    case 'google':
+      return {
+        text_content: data.textAnnotations?.[0]?.description || '',
+        lines: data.textAnnotations || []
+      };
+    default:
+      return {};
+  }
+}
+
+function extractFaces(data: any, provider: string): any[] {
+  switch (provider) {
+    case 'microsoft':
+      return data.faces?.map((face: any) => ({
+        age: face.age,
+        gender: face.gender,
+        emotion: face.emotion,
+        bounding_box: face.faceRectangle
+      })) || [];
+    case 'google':
+      return data.faceAnnotations?.map((face: any) => ({
+        emotions: face.emotionLikelihood,
+        bounding_box: face.boundingPoly
+      })) || [];
+    default:
+      return [];
+  }
+}
+
+function extractGeneralInfo(data: any, provider: string): any {
+  return {
+    analysis_provider: provider,
+    processing_time: new Date().toISOString(),
+    confidence_score: calculateOverallConfidence(data, provider),
+    image_quality: assessImageQuality(data, provider)
+  };
+}
+
+function calculateOverallConfidence(data: any, provider: string): number {
+  switch (provider) {
+    case 'microsoft':
+      const descriptions = data.description?.captions || [];
+      return descriptions.length > 0 ? descriptions[0].confidence : 0;
+    default:
+      return 0;
+  }
+}
+
+function assessImageQuality(data: any, provider: string): string {
+  // Simple quality assessment
+  const hasHighResolution = true; // Placeholder logic
+  const hasGoodContrast = true; // Placeholder logic
+  
+  if (hasHighResolution && hasGoodContrast) return 'High';
+  if (hasHighResolution || hasGoodContrast) return 'Medium';
+  return 'Low';
+}
+
 export const analyzeImage = createAction({
   auth: rapidApiAiVisionAuth,
   name: 'analyze_image',
@@ -29,13 +155,11 @@ export const analyzeImage = createAction({
       displayName: 'Image URL',
       description: 'URL publik dari gambar yang akan dianalisis',
       required: false,
-      placeholder: 'https://example.com/image.jpg'
     }),
     imageData: Property.LongText({
       displayName: 'Base64 Image Data',
       description: 'Data gambar dalam format base64',
       required: false,
-      placeholder: 'data:image/jpeg;base64,/9j/4AAQSkZJRg...'
     }),
     provider: Property.StaticDropdown({
       displayName: 'AI Provider',
@@ -51,88 +175,73 @@ export const analyzeImage = createAction({
       }
     }),
     analysisFeatures: Property.StaticMultiSelectDropdown({
-      displayName: 'Features to Analyze',
+      displayName: 'Analysis Features',
       required: false,
+      defaultValue: ['objects', 'colors'],
       options: {
         options: [
-          { label: 'Objects & Scene', value: 'objects' },
-          { label: 'Colors & Themes', value: 'colors' },
-          { label: 'Text (OCR)', value: 'text' },
-          { label: 'Faces', value: 'faces' },
-          { label: 'Landmarks', value: 'landmarks' },
-          { label: 'Brands & Logos', value: 'brands' },
-          { label: 'Adult Content', value: 'adult' },
-          { label: 'Image Quality', value: 'quality' }
+          { label: 'Object Detection', value: 'objects' },
+          { label: 'Color Analysis', value: 'colors' },
+          { label: 'Text Extraction (OCR)', value: 'text' },
+          { label: 'Face Detection', value: 'faces' },
+          { label: 'Scene Classification', value: 'scenes' }
         ]
       }
     })
   },
   async run({ auth, propsValue }) {
-    const { 
-      imageInput, 
-      imageUrl, 
-      imageData, 
-      provider = 'microsoft',
-      analysisFeatures = ['objects', 'colors', 'text']
-    } = propsValue;
+    const { imageInput, imageUrl, imageData, provider, analysisFeatures } = propsValue;
     
+    // Validate input
+    if (imageInput === 'url' && !imageUrl) {
+      throw new Error('Image URL is required when using URL input method');
+    }
+    if (imageInput === 'base64' && !imageData) {
+      throw new Error('Image data is required when using base64 input method');
+    }
+
     try {
-      const imageSource = imageInput === 'url' ? imageUrl : imageData;
-      if (!imageSource) {
-        throw new Error('Image URL atau Base64 data harus diisi');
-      }
+      // Construct the request based on provider
+      let url = '';
+      let headers: any = {
+        'X-RapidAPI-Key': auth,
+        'X-RapidAPI-Host': '',
+        'Content-Type': 'application/json'
+      };
       
-      let url: string;
-      let hostHeader: string;
-      let requestBody: any;
+      let body: any = {};
       
       switch (provider) {
         case 'microsoft':
           url = 'https://microsoft-computer-vision3.p.rapidapi.com/analyze';
-          hostHeader = 'microsoft-computer-vision3.p.rapidapi.com';
-          requestBody = imageInput === 'url' ? { url: imageUrl } : { data: imageData };
+          headers['X-RapidAPI-Host'] = 'microsoft-computer-vision3.p.rapidapi.com';
+          body = imageInput === 'url' ? { url: imageUrl } : { data: imageData };
           break;
-          
         case 'google':
-          url = 'https://google-cloud-vision.p.rapidapi.com/vision/analyze';
-          hostHeader = 'google-cloud-vision.p.rapidapi.com';
-          requestBody = { 
-            image: imageInput === 'url' ? { source: { imageUri: imageUrl }} : { content: imageData },
-            features: analysisFeatures.map(f => ({ type: f.toUpperCase(), maxResults: 10 }))
-          };
-          break;
-          
-        case 'clarifai':
-          url = 'https://clarifai-api.p.rapidapi.com/predict';
-          hostHeader = 'clarifai-api.p.rapidapi.com';
-          requestBody = {
-            inputs: [{
-              data: { image: imageInput === 'url' ? { url: imageUrl } : { base64: imageData } }
+          url = 'https://google-cloud-vision.p.rapidapi.com/v1/images:annotate';
+          headers['X-RapidAPI-Host'] = 'google-cloud-vision.p.rapidapi.com';
+          body = {
+            requests: [{
+              image: imageInput === 'url' ? { source: { imageUri: imageUrl } } : { content: imageData },
+              features: (analysisFeatures || []).map(feature => ({ type: feature.toUpperCase(), maxResults: 10 }))
             }]
           };
           break;
-          
         default:
-          url = 'https://api4ai-image-analyzer.p.rapidapi.com/analyze';
-          hostHeader = 'api4ai-image-analyzer.p.rapidapi.com';
-          requestBody = { image: imageSource };
+          throw new Error(`Unsupported provider: ${provider}`);
       }
 
       const response = await httpClient.sendRequest({
         method: HttpMethod.POST,
         url: url,
-        headers: {
-          'X-RapidAPI-Key': auth,
-          'X-RapidAPI-Host': hostHeader,
-          'Content-Type': 'application/json'
-        },
-        body: requestBody
+        headers: headers,
+        body: body,
       });
 
       const analysisData = response.body;
       
       // Normalize response berdasarkan provider
-      const normalizedResult = this.normalizeAnalysisResult(analysisData, provider, analysisFeatures);
+      const normalizedResult = normalizeAnalysisResult(analysisData, provider, analysisFeatures || []);
       
       return {
         success: true,
@@ -140,7 +249,7 @@ export const analyzeImage = createAction({
         image_info: {
           source_type: imageInput,
           analysis_timestamp: new Date().toISOString(),
-          features_analyzed: analysisFeatures
+          features_analyzed: analysisFeatures || []
         },
         analysis_results: normalizedResult,
         raw_response: analysisData
@@ -152,135 +261,5 @@ export const analyzeImage = createAction({
         provider: provider
       };
     }
-  },
-  
-  normalizeAnalysisResult(data: any, provider: string, features: string[]): any {
-    const result: any = {};
-    
-    if (features.includes('objects')) {
-      result.objects = this.extractObjects(data, provider);
-    }
-    
-    if (features.includes('colors')) {
-      result.colors = this.extractColors(data, provider);
-    }
-    
-    if (features.includes('text')) {
-      result.text = this.extractText(data, provider);
-    }
-    
-    if (features.includes('faces')) {
-      result.faces = this.extractFaces(data, provider);
-    }
-    
-    result.general_info = this.extractGeneralInfo(data, provider);
-    
-    return result;
-  },
-  
-  extractObjects(data: any, provider: string): any[] {
-    switch (provider) {
-      case 'microsoft':
-        return data.objects?.map((obj: any) => ({
-          name: obj.object,
-          confidence: obj.confidence,
-          bounding_box: obj.rectangle
-        })) || [];
-      case 'google':
-        return data.localizedObjectAnnotations?.map((obj: any) => ({
-          name: obj.name,
-          confidence: obj.score,
-          bounding_box: obj.boundingPoly
-        })) || [];
-      default:
-        return [];
-    }
-  },
-  
-  extractColors(data: any, provider: string): any {
-    switch (provider) {
-      case 'microsoft':
-        return {
-          dominant_colors: data.color?.dominantColors || [],
-          accent_color: data.color?.accentColor,
-          is_black_white: data.color?.isBWImg
-        };
-      case 'google':
-        return {
-          dominant_colors: data.imagePropertiesAnnotation?.dominantColors?.colors || []
-        };
-      default:
-        return {};
-    }
-  },
-  
-  extractText(data: any, provider: string): any {
-    switch (provider) {
-      case 'microsoft':
-        return {
-          detected_text: data.readResult?.content || '',
-          text_regions: data.regions || []
-        };
-      case 'google':
-        return {
-          detected_text: data.fullTextAnnotation?.text || '',
-          text_annotations: data.textAnnotations || []
-        };
-      default:
-        return {};
-    }
-  },
-  
-  extractFaces(data: any, provider: string): any[] {
-    switch (provider) {
-      case 'microsoft':
-        return data.faces?.map((face: any) => ({
-          age: face.faceAttributes?.age,
-          gender: face.faceAttributes?.gender,
-          emotion: face.faceAttributes?.emotion,
-          bounding_box: face.faceRectangle
-        })) || [];
-      case 'google':
-        return data.faceAnnotations?.map((face: any) => ({
-          detection_confidence: face.detectionConfidence,
-          emotions: {
-            joy: face.joyLikelihood,
-            sorrow: face.sorrowLikelihood,
-            anger: face.angerLikelihood,
-            surprise: face.surpriseLikelihood
-          },
-          bounding_box: face.boundingPoly
-        })) || [];
-      default:
-        return [];
-    }
-  },
-  
-  extractGeneralInfo(data: any, provider: string): any {
-    return {
-      provider: provider,
-      processing_time: new Date().toISOString(),
-      confidence_score: this.calculateOverallConfidence(data, provider),
-      image_quality: this.assessImageQuality(data, provider)
-    };
-  },
-  
-  calculateOverallConfidence(data: any, provider: string): number {
-    // Simple confidence calculation
-    if (provider === 'microsoft' && data.objects) {
-      const avgConfidence = data.objects.reduce((sum: number, obj: any) => sum + obj.confidence, 0) / data.objects.length;
-      return Math.round(avgConfidence * 100) / 100;
-    }
-    return 0.8; // Default confidence
-  },
-  
-  assessImageQuality(data: any, provider: string): string {
-    // Simple quality assessment
-    const hasHighResolution = true; // Would check actual image dimensions
-    const hasGoodContrast = true; // Would analyze color distribution
-    
-    if (hasHighResolution && hasGoodContrast) return 'High';
-    if (hasHighResolution || hasGoodContrast) return 'Medium';
-    return 'Low';
   }
 });

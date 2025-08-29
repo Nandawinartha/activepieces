@@ -11,7 +11,6 @@ export const faceDetection = createAction({
     imageUrl: Property.ShortText({
       displayName: 'Image URL',
       required: true,
-      placeholder: 'https://example.com/image.jpg'
     }),
     includeAttributes: Property.Checkbox({
       displayName: 'Include Face Attributes',
