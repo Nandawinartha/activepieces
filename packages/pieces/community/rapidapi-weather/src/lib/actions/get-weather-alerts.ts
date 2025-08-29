@@ -18,7 +18,7 @@ export const getWeatherAlerts = createAction({
       displayName: 'Lokasi',
       description: 'Nama kota, koordinat lat,lon, kode pos, atau IP address',
       required: true,
-      placeholder: 'Jakarta, -6.2088,106.8456, 10001, atau auto:ip'
+
     }),
     language: Property.StaticDropdown({
       displayName: 'Bahasa',
@@ -139,12 +139,12 @@ export const getWeatherAlerts = createAction({
         },
         alerts: {
           total_count: processedAlerts.length,
-          active_count: processedAlerts.filter(alert => alert.is_active).length,
+          active_count: processedAlerts.filter((alert: any) => alert.is_active).length,
           alerts: processedAlerts
         },
         alerts_summary: {
           has_alerts: processedAlerts.length > 0,
-          has_severe_alerts: processedAlerts.some(alert => 
+          has_severe_alerts: processedAlerts.some((alert: any) => 
             ['severe', 'extreme'].includes(alert.severity?.toLowerCase() || '')
           ),
           severity_breakdown: processedAlerts.reduce((acc: any, alert: any) => {
@@ -152,10 +152,10 @@ export const getWeatherAlerts = createAction({
             acc[sev] = (acc[sev] || 0) + 1;
             return acc;
           }, {}),
-          categories: [...new Set(processedAlerts.map(alert => alert.category))],
+          categories: [...new Set(processedAlerts.map((alert: any) => alert.category))],
           earliest_expiry: processedAlerts
-            .filter(alert => alert.expires)
-            .map(alert => alert.expires)
+            .filter((alert: any) => alert.expires)
+            .map((alert: any) => alert.expires)
             .sort()[0] || null
         },
         filters_applied: {

@@ -46,12 +46,10 @@ export const rapidApiTranslate = createPiece({
     createCustomApiCallAction({
       auth: rapidApiTranslateAuth,
       baseUrl: () => 'https://google-translate1.p.rapidapi.com',
-      authMapping: async (auth) => {
-        return {
-          'X-RapidAPI-Key': auth,
-          'X-RapidAPI-Host': 'google-translate1.p.rapidapi.com',
-        };
-      },
+      authMapping: async (auth) => ({
+        'X-RapidAPI-Key': auth as string,
+        'X-RapidAPI-Host': 'google-translate1.p.rapidapi.com',
+      }),
     }),
   ],
   authors: ['activepieces-community'],

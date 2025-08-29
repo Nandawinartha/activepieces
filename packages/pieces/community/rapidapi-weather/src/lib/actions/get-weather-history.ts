@@ -18,19 +18,19 @@ export const getWeatherHistory = createAction({
       displayName: 'Lokasi',
       description: 'Nama kota, koordinat lat,lon, kode pos',
       required: true,
-      placeholder: 'Jakarta, -6.2088,106.8456, 10001'
+
     }),
     date: Property.DateTime({
       displayName: 'Tanggal',
       description: 'Tanggal untuk mendapatkan data historis (format: YYYY-MM-DD)',
       required: true,
-      validators: []
+
     }),
     endDate: Property.DateTime({
       displayName: 'Tanggal Akhir (Opsional)',
       description: 'Tanggal akhir untuk range data historis (maksimal 7 hari)',
       required: false,
-      validators: []
+
     }),
     language: Property.StaticDropdown({
       displayName: 'Bahasa',

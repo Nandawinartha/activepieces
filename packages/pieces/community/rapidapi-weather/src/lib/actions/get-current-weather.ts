@@ -19,7 +19,7 @@ export const getCurrentWeather = createAction({
       displayName: 'Lokasi',
       description: 'Nama kota, koordinat lat,lon, kode pos, atau IP address',
       required: true,
-      placeholder: 'Jakarta, -6.2088,106.8456, 10001, atau auto:ip'
+
     }),
     language: Property.StaticDropdown({
       displayName: 'Bahasa',

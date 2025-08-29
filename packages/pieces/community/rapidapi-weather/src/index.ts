@@ -29,7 +29,7 @@ export const rapidApiWeather = createPiece({
   description: 'Akses data cuaca real-time dan forecast menggunakan berbagai Weather API di RapidAPI',
   minimumSupportedRelease: '0.36.1',
   logoUrl: 'https://cdn.activepieces.com/pieces/rapidapi.png',
-  categories: [PieceCategory.CONTENT],
+  categories: [PieceCategory.PRODUCTIVITY],
   auth: rapidApiWeatherAuth,
   actions: [
     getCurrentWeather,
@@ -39,12 +39,10 @@ export const rapidApiWeather = createPiece({
     createCustomApiCallAction({
       auth: rapidApiWeatherAuth,
       baseUrl: () => 'https://weatherapi-com.p.rapidapi.com',
-      authMapping: async (auth) => {
-        return {
-          'X-RapidAPI-Key': auth,
-          'X-RapidAPI-Host': 'weatherapi-com.p.rapidapi.com',
-        };
-      },
+      authMapping: async (auth) => ({
+        'X-RapidAPI-Key': auth as string,
+        'X-RapidAPI-Host': 'weatherapi-com.p.rapidapi.com',
+      }),
     }),
   ],
   authors: ['activepieces-community'],
