@@ -1,0 +1,30 @@
+{
+  "name": "pieces-my-custom-piece",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/pieces/custom/my-custom-piece/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/packages/pieces/custom/my-custom-piece",
+        "main": "packages/pieces/custom/my-custom-piece/src/index.ts",
+        "tsConfig": "packages/pieces/custom/my-custom-piece/tsconfig.lib.json",
+        "assets": ["packages/pieces/custom/my-custom-piece/*.md"],
+        "buildableProjectDepsInPackageJsonType": "dependencies",
+        "updateBuildableProjectDepsInPackageJson": true
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": [
+          "packages/pieces/custom/my-custom-piece/**/*.ts"
+        ]
+      }
+    }
+  },
+  "tags": []
+}
