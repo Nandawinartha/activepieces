@@ -1,85 +1,62 @@
-import {
-  createAction,
-  Property,
-} from '@activepieces/pieces-framework';
-import {
-  HttpMethod,
-  httpClient,
-} from '@activepieces/pieces-common';
+import { createAction, Property } from '@activepieces/pieces-framework';
+import { HttpMethod, httpClient } from '@activepieces/pieces-common';
 import { rapidApiNewsAuth } from '../..';
 
 export const searchNews = createAction({
   auth: rapidApiNewsAuth,
   name: 'search_news',
   displayName: 'Cari Berita',
-  description: 'Mencari berita berdasarkan keyword, topik, atau query tertentu',
+  description: 'Cari berita berdasarkan kata kunci',
   props: {
     provider: Property.StaticDropdown({
-      displayName: 'News Provider',
-      description: 'Pilih provider News API yang ingin digunakan',
+      displayName: 'Search Provider',
       required: true,
       defaultValue: 'newsapi',
       options: {
         options: [
-          { label: 'NewsAPI.org', value: 'newsapi' },
-          { label: 'News API by API-Ninjas', value: 'ninjas' },
-          { label: 'Currents API', value: 'currents' },
-          { label: 'News Data IO', value: 'newsdata' }
+          { label: 'NewsAPI', value: 'newsapi' },
+          { label: 'News Catcher', value: 'newscatcher' }
         ]
       }
     }),
     query: Property.LongText({
       displayName: 'Query Pencarian',
-      description: 'Keyword atau query untuk mencari berita. Gunakan operator AND, OR, NOT untuk pencarian advanced',
+      description: 'Keyword atau query untuk mencari berita',
       required: true,
-      placeholder: 'AI teknologi, "artificial intelligence" AND Indonesia, blockchain OR cryptocurrency'
     }),
     searchIn: Property.StaticMultiSelectDropdown({
       displayName: 'Cari Dalam',
-      description: 'Tentukan di bagian mana pencarian dilakukan',
       required: false,
+      defaultValue: ['title', 'description'],
       options: {
         options: [
-          { label: 'Judul', value: 'title' },
-          { label: 'Deskripsi', value: 'description' },
-          { label: 'Konten', value: 'content' }
+          { label: 'Title', value: 'title' },
+          { label: 'Description', value: 'description' },
+          { label: 'Content', value: 'content' }
         ]
       }
     }),
     sortBy: Property.StaticDropdown({
       displayName: 'Urutkan Berdasarkan',
-      description: 'Cara mengurutkan hasil pencarian',
       required: false,
       defaultValue: 'publishedAt',
       options: {
         options: [
-          { label: 'Tanggal Publikasi (Terbaru)', value: 'publishedAt' },
-          { label: 'Relevansi', value: 'relevancy' },
-          { label: 'Popularitas', value: 'popularity' }
+          { label: 'Published Date', value: 'publishedAt' },
+          { label: 'Relevancy', value: 'relevancy' },
+          { label: 'Popularity', value: 'popularity' }
         ]
       }
     }),
     language: Property.StaticDropdown({
       displayName: 'Bahasa',
-      description: 'Bahasa artikel yang dicari',
       required: false,
-      defaultValue: 'id',
+      defaultValue: 'en',
       options: {
         options: [
-          { label: 'Bahasa Indonesia', value: 'id' },
           { label: 'English', value: 'en' },
-          { label: 'العربية', value: 'ar' },
-          { label: 'Deutsch', value: 'de' },
-          { label: 'Español', value: 'es' },
-          { label: 'Français', value: 'fr' },
-          { label: 'עברית', value: 'he' },
-          { label: 'Italiano', value: 'it' },
-          { label: 'Nederlands', value: 'nl' },
-          { label: 'Norsk', value: 'no' },
-          { label: 'Português', value: 'pt' },
-          { label: 'Русский', value: 'ru' },
-          { label: 'Svenska', value: 'sv' },
-          { label: '中文', value: 'zh' }
+          { label: 'Indonesian', value: 'id' },
+          { label: 'Spanish', value: 'es' }
         ]
       }
     }),
@@ -87,48 +64,42 @@ export const searchNews = createAction({
       displayName: 'Dari Tanggal',
       description: 'Tanggal mulai pencarian (format: YYYY-MM-DD)',
       required: false,
-      validators: []
     }),
     toDate: Property.DateTime({
       displayName: 'Sampai Tanggal',
       description: 'Tanggal akhir pencarian (format: YYYY-MM-DD)',
       required: false,
-      validators: []
     }),
     domains: Property.ShortText({
       displayName: 'Domain Sumber',
       description: 'Batasi pencarian pada domain tertentu (pisah dengan koma)',
       required: false,
-      placeholder: 'bbc.co.uk,cnn.com,kompas.com'
     }),
     excludeDomains: Property.ShortText({
       displayName: 'Kecualikan Domain',
       description: 'Kecualikan domain tertentu dari hasil pencarian',
       required: false,
-      placeholder: 'example.com,spam-site.com'
     }),
     pageSize: Property.Number({
       displayName: 'Jumlah Artikel',
-      description: 'Berapa banyak artikel yang ingin ditampilkan (max 100)',
+      description: 'Jumlah artikel per halaman (maksimal 100)',
       required: false,
       defaultValue: 20,
-      validators: []
     }),
     page: Property.Number({
       displayName: 'Halaman',
-      description: 'Halaman hasil pencarian (mulai dari 1)',
+      description: 'Nomor halaman untuk pagination',
       required: false,
       defaultValue: 1,
-      validators: []
     })
   },
   async run({ auth, propsValue }) {
     const { 
-      provider = 'newsapi',
-      query,
-      searchIn,
+      provider, 
+      query, 
+      searchIn = ['title', 'description'], 
       sortBy = 'publishedAt',
-      language = 'id',
+      language = 'en',
       fromDate,
       toDate,
       domains,
@@ -138,185 +109,101 @@ export const searchNews = createAction({
     } = propsValue;
     
     try {
-      let url: string;
+      let url = '';
+      let headers: any = {};
       let queryParams: any = {};
-      let hostHeader: string;
-      
-      // Format tanggal ke ISO string
-      const formatDate = (dateString: string) => {
-        return new Date(dateString).toISOString().split('T')[0];
-      };
-      
-      // Konfigurasi berdasarkan provider
+
       switch (provider) {
         case 'newsapi':
           url = 'https://newsapi.org/v2/everything';
-          hostHeader = 'newsapi.org';
+          headers = {
+            'X-API-Key': auth,
+            'Content-Type': 'application/json'
+          };
           queryParams = {
             q: query,
-            pageSize: Math.min(pageSize, 100),
-            page: page,
+            searchIn: searchIn.join(','),
             sortBy: sortBy,
-            language: language
+            language: language,
+            pageSize: Math.min(pageSize, 100),
+            page: page
           };
-          if (searchIn && searchIn.length > 0) queryParams.searchIn = searchIn.join(',');
-          if (fromDate) queryParams.from = formatDate(fromDate);
-          if (toDate) queryParams.to = formatDate(toDate);
+          
+          if (fromDate) queryParams.from = fromDate;
+          if (toDate) queryParams.to = toDate;
           if (domains) queryParams.domains = domains;
           if (excludeDomains) queryParams.excludeDomains = excludeDomains;
           break;
-          
-        case 'ninjas':
-          url = 'https://api.api-ninjas.com/v1/news';
-          hostHeader = 'api.api-ninjas.com';
-          queryParams = {
-            q: query,
-            limit: Math.min(pageSize, 50)
-          };
-          break;
-          
-        case 'currents':
-          url = 'https://currentsapi.services/v1/search';
-          hostHeader = 'currentsapi.services';
-          queryParams = {
-            keywords: query,
-            page_size: Math.min(pageSize, 200),
-            page_number: page,
-            language: language
-          };
-          if (fromDate) queryParams.start_date = formatDate(fromDate);
-          if (toDate) queryParams.end_date = formatDate(toDate);
-          break;
-          
-        case 'newsdata':
-          url = 'https://newsdata.io/api/1/news';
-          hostHeader = 'newsdata.io';
-          queryParams = {
-            q: query,
-            size: Math.min(pageSize, 50),
-            page: page,
-            language: language
-          };
-          if (fromDate) queryParams.from_date = formatDate(fromDate);
-          if (toDate) queryParams.to_date = formatDate(toDate);
-          break;
-          
+        
         default:
-          throw new Error(`Provider ${provider} tidak didukung`);
+          throw new Error(`Unsupported provider: ${provider}`);
       }
 
       const response = await httpClient.sendRequest({
         method: HttpMethod.GET,
         url: url,
-        headers: {
-          'X-RapidAPI-Key': auth,
-          'X-RapidAPI-Host': hostHeader,
-        },
-        queryParams
+        headers: headers,
+        queryParams: queryParams
       });
 
-      const newsData = response.body;
+      const articles = response.body.articles || [];
+      const totalResults = response.body.totalResults || 0;
       
-      // Normalize response berdasarkan provider
-      let articles: any[] = [];
-      let totalResults = 0;
-      
-      if (provider === 'newsapi') {
-        articles = newsData.articles || [];
-        totalResults = newsData.totalResults || 0;
-      } else if (provider === 'ninjas') {
-        articles = newsData || [];
-        totalResults = articles.length;
-      } else if (provider === 'currents') {
-        articles = newsData.news || [];
-        totalResults = articles.length;
-      } else if (provider === 'newsdata') {
-        articles = newsData.results || [];
-        totalResults = newsData.totalResults || 0;
-      }
-      
-      // Standarisasi format artikel
-      const standardizedArticles = articles.map((article: any, index: number) => ({
-        id: article.id || `search-${index}`,
-        title: article.title || article.headline,
-        description: article.description || article.excerpt || article.snippet,
-        content: article.content || article.description,
-        url: article.url || article.link,
-        image: article.urlToImage || article.image || article.image_url,
-        published_at: article.publishedAt || article.published || article.pubDate,
+      // Simple processing
+      const processedArticles = articles.map((article: any, index: number) => ({
+        id: `search-${page}-${index}`,
+        title: article.title,
+        description: article.description,
+        url: article.url,
+        urlToImage: article.urlToImage,
+        publishedAt: article.publishedAt,
         source: {
-          name: article.source?.name || article.author || provider,
-          url: article.source?.url || article.url
+          id: article.source?.id,
+          name: article.source?.name || 'Unknown'
         },
         author: article.author || null,
-        relevancy_score: this.calculateRelevancy(article, query),
-        search_highlights: this.extractHighlights(article, query)
+        relevancy_score: 0.8, // Simple mock score
+        search_highlights: query.toLowerCase().split(' ').filter(term => 
+          article.title?.toLowerCase().includes(term) || 
+          article.description?.toLowerCase().includes(term)
+        )
       }));
-      
+
       return {
         success: true,
-        provider: provider,
-        search_query: query,
-        metadata: {
-          total_results: totalResults,
-          returned_articles: standardizedArticles.length,
-          current_page: page,
-          page_size: pageSize,
-          total_pages: Math.ceil(totalResults / pageSize),
-          has_more_results: (page * pageSize) < totalResults
-        },
-        articles: standardizedArticles,
-        search_summary: {
+        articles: processedArticles,
+        search_info: {
           query: query,
-          search_scope: searchIn || ['title', 'description', 'content'],
-          date_range: {
-            from: fromDate || null,
-            to: toDate || null
-          },
-          filters: {
-            language: language,
-            domains: domains || null,
-            exclude_domains: excludeDomains || null,
-            sort_by: sortBy
-          }
+          total_results: totalResults,
+          page: page,
+          page_size: pageSize,
+          search_in: searchIn,
+          sort_by: sortBy,
+          language: language
+        },
+        pagination: {
+          current_page: page,
+          total_pages: Math.ceil(totalResults / pageSize),
+          has_next_page: page * pageSize < totalResults,
+          has_previous_page: page > 1
         },
         request_info: {
+          provider: provider,
           timestamp: new Date().toISOString(),
-          search_terms: query.split(/\s+/).filter(term => term.length > 2)
-        },
-        raw_response: newsData
+          filters_applied: {
+            date_range: fromDate || toDate ? { from: fromDate, to: toDate } : null,
+            domains: domains || null,
+            exclude_domains: excludeDomains || null
+          }
+        }
       };
     } catch (error: any) {
       return {
         success: false,
         error: error.message,
-        error_code: error.response?.status || 'UNKNOWN_ERROR',
-        provider: provider,
-        search_query: query,
-        details: error.response?.data || null
+        query: query,
+        provider: provider
       };
     }
-  },
-  
-  // Helper methods
-  calculateRelevancy(article: any, query: string): number {
-    const searchTerms = query.toLowerCase().split(/\s+/);
-    const titleText = (article.title || '').toLowerCase();
-    const descText = (article.description || '').toLowerCase();
-    
-    let score = 0;
-    searchTerms.forEach(term => {
-      if (titleText.includes(term)) score += 3;
-      if (descText.includes(term)) score += 1;
-    });
-    
-    return Math.min(score / searchTerms.length, 5);
-  },
-  
-  extractHighlights(article: any, query: string): string[] {
-    const searchTerms = query.toLowerCase().split(/\s+/);
-    const text = `${article.title || ''} ${article.description || ''}`.toLowerCase();
-    
-    return searchTerms.filter(term => text.includes(term));
   }
 });

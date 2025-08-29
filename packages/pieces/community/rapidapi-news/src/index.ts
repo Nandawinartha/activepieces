@@ -3,7 +3,7 @@ import { PieceAuth, createPiece } from '@activepieces/pieces-framework';
 import { PieceCategory } from '@activepieces/shared';
 import { getTopHeadlines } from './lib/actions/get-top-headlines';
 import { searchNews } from './lib/actions/search-news';
-import { getNewsByCategory } from './lib/actions/get-news-by-category';
+// import { getNewsByCategory } from './lib/actions/get-news-by-category';
 import { getNewsSources } from './lib/actions/get-news-sources';
 import { getTrendingNews } from './lib/actions/get-trending-news';
 
@@ -34,23 +34,20 @@ export const rapidApiNews = createPiece({
   description: 'Akses berita terkini dari berbagai sumber menggunakan News APIs di RapidAPI',
   minimumSupportedRelease: '0.36.1',
   logoUrl: 'https://cdn.activepieces.com/pieces/rapidapi.png',
-  categories: [PieceCategory.CONTENT],
+  categories: [PieceCategory.PRODUCTIVITY],
   auth: rapidApiNewsAuth,
   actions: [
     getTopHeadlines,
     searchNews,
-    getNewsByCategory,
     getTrendingNews,
     getNewsSources,
     createCustomApiCallAction({
       auth: rapidApiNewsAuth,
       baseUrl: () => 'https://newsapi.org',
-      authMapping: async (auth) => {
-        return {
-          'X-RapidAPI-Key': auth,
-          'X-RapidAPI-Host': 'newsapi.org',
-        };
-      },
+      authMapping: async (auth) => ({
+        'X-RapidAPI-Key': auth as string,
+        'X-RapidAPI-Host': 'newsapi.org',
+      }),
     }),
   ],
   authors: ['activepieces-community'],
