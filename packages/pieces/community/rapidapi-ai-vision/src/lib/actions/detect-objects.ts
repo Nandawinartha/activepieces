@@ -11,13 +11,11 @@ export const detectObjects = createAction({
     imageUrl: Property.ShortText({
       displayName: 'Image URL',
       required: true,
-      placeholder: 'https://example.com/image.jpg'
     }),
     minConfidence: Property.Number({
       displayName: 'Minimum Confidence',
       required: false,
       defaultValue: 0.5,
-      validators: []
     })
   },
   async run({ auth, propsValue }) {

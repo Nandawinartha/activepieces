@@ -556,6 +556,18 @@
       "@activepieces/piece-quickzu": [
         "packages/pieces/community/quickzu/src/index.ts"
       ],
+      "@activepieces/piece-rapidapi-ai-vision": [
+        "packages/pieces/community/rapidapi-ai-vision/src/index.ts"
+      ],
+      "@activepieces/piece-rapidapi-news": [
+        "packages/pieces/community/rapidapi-news/src/index.ts"
+      ],
+      "@activepieces/piece-rapidapi-translate": [
+        "packages/pieces/community/rapidapi-translate/src/index.ts"
+      ],
+      "@activepieces/piece-rapidapi-weather": [
+        "packages/pieces/community/rapidapi-weather/src/index.ts"
+      ],
       "@activepieces/piece-rabbitmq": [
         "packages/pieces/community/rabbitmq/src/index.ts"
       ],

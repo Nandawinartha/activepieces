@@ -11,7 +11,6 @@ export const generateImageDescription = createAction({
     imageUrl: Property.ShortText({
       displayName: 'Image URL',
       required: true,
-      placeholder: 'https://example.com/image.jpg'
     }),
     language: Property.StaticDropdown({
       displayName: 'Description Language',
